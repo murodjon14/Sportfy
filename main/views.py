@@ -5,12 +5,28 @@ from .serializers import *
 from .models import *
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.filters import OrderingFilter, SearchFilter
+
 
 class QoshiqchilarAPIView(APIView):
     def get(self, request):
         qoshiqchilar = Qoshiqchi.objects.all()
+        ism_search = request.query_params.get('ism', None)
+        davlat_search = request.query_params.get('davlat', None)
+        t_sana_search = request.query_params.get('t_sana', None)
+
+        if ism_search is not None:
+            qoshiqchilar = qoshiqchilar.filter(ism=ism_search)
+
+        if davlat_search is not None:
+            qoshiqchilar = qoshiqchilar.filter(davlat=davlat_search)
+
+        if t_sana_search is not None:
+            qoshiqchilar = qoshiqchilar.order_by(sana=t_sana_search)
+
         serializers = QoshiqchiSerializer(qoshiqchilar, many=True)
         return Response(serializers.data, status=201)
+
 
 class QoshiqchiDeleteAPIView(APIView):
     def post(self, request):
@@ -35,13 +51,50 @@ class QoshiqchiUpdatingAPIView(APIView):
         qoshiqchi.delete()
         return Response(serializer.errors, status=400)
 
+
+class QoshiqAPIView(APIView):
+    def get(self, request):
+        qoshiq = Qoshiq.objects.all()
+        nom_search = request.query_params.get('nom', None)
+        janr_serach = request.query_params.get('janr', None)
+
+        if nom_search is not None:
+            qoshiq = qoshiq.filter(nom=nom_search)
+
+        if janr_serach is not None:
+            qoshiq = qoshiq.filter(janr=janr_serach)
+
+        serializer = QoshiqSerializer(qoshiq, many=True)
+        return Response(serializer.data, status=201)
+
+class AlbomlarAPIView(APIView):
+    def get(self, request):
+        albom = Albom.objects.all()
+        nom_search = request.query_params.get('nom', None)
+
+
+        if nom_search is not None:
+            albom = albom.filter(nom=nom_search)
+
+
+        serializers = AlbomSerializer(albom, many=True)
+        return Response(serializers.data, status=201)
+
+
+
 class AlbomlarModelViewSet(ModelViewSet):
     queryset = Albom.objects.all()
     serializer_class = AlbomSerializer
 
+    filter_backends = [SearchFilter, OrderingFilter]
+    order_fields = ['sana']
+
 class QoshiqchilarModelViewSet(ModelViewSet):
     queryset = Qoshiqchi.objects.all()
     serializer_class = QoshiqchiSerializer
+
+    filter_backends = [SearchFilter, OrderingFilter]
+    order_fields = ['t_sana']
 
     @action(detail=True, methods=['get'])
     def qoshiqchini_albomlari(self, request, pk):
@@ -66,6 +119,9 @@ class AlbomlarModelViewSet(ModelViewSet):
 class QoshiqModelViewSet(ModelViewSet):
     queryset = Qoshiq.objects.all()
     serializer_class = QoshiqSerializer
+
+    filter_backends = [SearchFilter, OrderingFilter]
+    order_fields = ['davomiylik']
 
 
 class AlbomQoshishModelViewSet(ModelViewSet):
